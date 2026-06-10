@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120" role="img" aria-labelledby="title">
+  <title id="title">Deepwater Skyros broadcast badge</title>
+  <defs>
+    <linearGradient id="sea" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#19b7a8"/>
+      <stop offset="0.55" stop-color="#2876d2"/>
+      <stop offset="1" stop-color="#f2b84b"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#061016" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="240" height="120" rx="14" fill="#f7f3ea"/>
+  <path d="M14 85c26-13 45 12 71 0s42-12 69 0 48 12 72 0v21H14z" fill="url(#sea)" opacity=".95"/>
+  <g filter="url(#shadow)">
+    <path d="M64 70h112l-13 17H77z" fill="#162028"/>
+    <path d="M81 43h35v27H70z" fill="#24313a"/>
+    <path d="M126 31h16v39h-16z" fill="#24313a"/>
+    <path d="M148 48h22v22h-22z" fill="#24313a"/>
+    <path d="M130 20l45 50h-12l-37-41z" fill="#3b4b55"/>
+    <path d="M137 20l-42 50h-10l46-54z" fill="#3b4b55"/>
+    <circle cx="99" cy="55" r="5" fill="#f2b84b"/>
+    <circle cx="159" cy="59" r="4" fill="#f2b84b"/>
+  </g>
+  <path d="M44 91c19-6 33 6 52 0s32-6 50 0 32 7 50 0" fill="none" stroke="#f7f3ea" stroke-width="4" stroke-linecap="round" opacity=".82"/>
+</svg>
