@@ -73,26 +73,6 @@ body {
   min-width: 0;
 }
 
-.brand {
-  gap: 18px;
-}
-
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 74px;
-  height: 74px;
-  border: 2px solid rgba(242, 184, 75, 0.7);
-  background:
-    linear-gradient(135deg, rgba(25, 183, 168, 0.28), rgba(236, 93, 87, 0.24)),
-    var(--ink);
-}
-
-.brand-mark span {
-  font-size: 28px;
-  font-weight: 900;
-}
-
 .eyebrow,
 .section-kicker,
 .metric p,
@@ -614,21 +594,10 @@ th:first-child {
 
 .ticker-wrap {
   display: grid;
-  grid-template-columns: 210px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   min-height: 76px;
   overflow: hidden;
-}
-
-.ticker-label {
-  display: grid;
-  height: 100%;
-  place-items: center;
-  background: var(--gold);
-  color: #111a20;
-  font-size: 18px;
-  font-weight: 950;
-  text-transform: uppercase;
 }
 
 .ticker-viewport {
