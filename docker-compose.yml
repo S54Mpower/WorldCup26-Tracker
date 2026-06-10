@@ -3,7 +3,8 @@ services:
     build: .
     container_name: worldcup-tracker
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      FOOTBALL_DATA_TOKEN: ${FOOTBALL_DATA_TOKEN:-}
+      PORT: ${PORT:-4326}
     ports:
       - "${HOST_PORT:-4326}:${PORT:-4326}"

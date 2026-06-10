@@ -69,7 +69,15 @@ Or use Docker Compose:
 docker compose up -d --build
 ```
 
-The `.env` file is used at runtime and is intentionally excluded from the Docker image. Compose maps `HOST_PORT` to `PORT`; if `HOST_PORT` is not set, it uses `4326`.
+For Portainer or another stack manager, add these stack environment variables:
+
+```text
+FOOTBALL_DATA_TOKEN=your_token_here
+PORT=4326
+HOST_PORT=4326
+```
+
+`FOOTBALL_DATA_TOKEN` is required for live API data. `PORT` is the internal container port and `HOST_PORT` is the host port exposed to OBS. Compose maps `HOST_PORT` to `PORT`; if either value is omitted, it uses `4326`.
 
 ## OBS
 
