@@ -1,0 +1,9 @@
+services:
+  worldcup-tracker:
+    build: .
+    container_name: worldcup-tracker
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${HOST_PORT:-4326}:${PORT:-4326}"

@@ -18,6 +18,7 @@ The dashboard is designed to run without interaction during a stream. It rotates
 
 - Node.js 18 or newer
 - A football-data.org API token with FIFA World Cup access
+- Docker, if running the containerized setup
 
 ## Setup
 
@@ -45,6 +46,30 @@ Open the dashboard:
 ```text
 http://localhost:4326
 ```
+
+## Docker
+
+Build and run with Docker:
+
+```bash
+docker build -t worldcup-tracker .
+docker run -d \
+  --name worldcup-tracker \
+  --restart unless-stopped \
+  -p 4326:4326 \
+  --env-file .env \
+  worldcup-tracker
+```
+
+If you change `PORT` in `.env`, map the container side to that same value.
+
+Or use Docker Compose:
+
+```bash
+docker compose up -d --build
+```
+
+The `.env` file is used at runtime and is intentionally excluded from the Docker image. Compose maps `HOST_PORT` to `PORT`; if `HOST_PORT` is not set, it uses `4326`.
 
 ## OBS
 
