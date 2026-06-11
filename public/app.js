@@ -195,8 +195,8 @@ function renderTeams() {
 
 function renderTicker() {
   const items = [
-    ...sortedMatches().filter(isComplete).reverse().slice(0, 8).map((match) => tickerItem(match, "FT")),
-    ...sortedMatches().filter((match) => !isComplete(match)).slice(0, 12).map((match) => tickerItem(match, match.status || "NEXT"))
+    ...sortedMatches().filter(isComplete).reverse().slice(0, 8).map(tickerItem),
+    ...sortedMatches().filter((match) => !isComplete(match)).slice(0, 12).map(tickerItem)
   ];
 
   const fallback = [
@@ -290,11 +290,11 @@ function teamMarkup(team) {
   `;
 }
 
-function tickerItem(match, label) {
+function tickerItem(match) {
   const score = isComplete(match)
     ? `${scoreDisplay(match, "home")}-${scoreDisplay(match, "away")}`
     : formatTime(match.utcDate);
-  return `${label}: ${teamName(match.homeTeam)} ${score} ${teamName(match.awayTeam)}`;
+  return `${tickerDateLabel(match.utcDate)}: ${teamName(match.homeTeam)} ${score} ${teamName(match.awayTeam)}`;
 }
 
 function detailPills(items) {
@@ -452,6 +452,32 @@ function formatDateTime(value) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(value));
+}
+
+function tickerDateLabel(value) {
+  if (!value) {
+    return "TBD";
+  }
+
+  const matchDate = new Date(value);
+  const today = startOfLocalDay(new Date());
+  const matchDay = startOfLocalDay(matchDate);
+  const dayDiff = Math.round((matchDay - today) / 86_400_000);
+
+  if (dayDiff === 0) {
+    return "TODAY";
+  }
+  if (dayDiff === 1) {
+    return "TOMORROW";
+  }
+
+  const day = String(matchDate.getDate()).padStart(2, "0");
+  const month = String(matchDate.getMonth() + 1).padStart(2, "0");
+  return `${day}.${month}`;
+}
+
+function startOfLocalDay(value) {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate());
 }
 
 function escapeHtml(value) {
