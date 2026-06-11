@@ -634,10 +634,31 @@ h2 {
 }
 
 .standings-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
   min-height: 0;
+  overflow: hidden;
+}
+
+.standings-board .empty-state {
+  grid-column: 1 / -1;
+}
+
+.group-panel {
+  min-width: 0;
+  overflow: hidden;
   background: rgba(7, 16, 22, 0.72);
   border: 1px solid var(--line);
-  overflow: hidden;
+}
+
+.group-panel-title {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--gold);
+  font-size: 20px;
+  font-weight: 950;
+  text-transform: uppercase;
 }
 
 table {
@@ -648,9 +669,9 @@ table {
 
 th,
 td {
-  padding: 14px 18px;
+  padding: 12px 13px;
   border-bottom: 1px solid var(--line);
-  font-size: 23px;
+  font-size: 20px;
   text-align: center;
 }
 
@@ -669,22 +690,23 @@ th:first-child {
 .table-team {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 9px;
   min-width: 0;
   font-weight: 850;
 }
 
 .table-team img,
 .table-team i {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   flex: 0 0 auto;
 }
 
 .team-wall {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 10px;
   min-height: 0;
 }
 
@@ -697,18 +719,18 @@ th:first-child {
 .team-tile {
   display: flex;
   min-width: 0;
-  min-height: 82px;
+  min-height: 0;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px;
+  gap: 7px;
+  padding: 10px;
 }
 
 .team-tile img,
 .team-tile i {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
 }
 
 .team-tile span {

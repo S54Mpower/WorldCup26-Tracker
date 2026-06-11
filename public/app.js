@@ -19,6 +19,7 @@ let state = {
 };
 let activeSlide = 0;
 let groupIndex = 0;
+let slideCycle = 0;
 let slideTimer = null;
 
 const els = {
@@ -197,25 +198,16 @@ function renderStandings() {
     return;
   }
 
-  const standing = tables[groupIndex % tables.length];
-  els.groupTitle.textContent = formatLabel(standing.group || standing.stage || standing.type || "Standings");
+  const visibleTables = [tables[groupIndex % tables.length]];
+  if (tables.length > 1) {
+    visibleTables.push(tables[(groupIndex + 1) % tables.length]);
+  }
+
+  els.groupTitle.textContent = visibleTables
+    .map((standing) => formatLabel(standing.group || standing.stage || standing.type || "Standings"))
+    .join(" / ");
   els.standingsBoard.innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>Team</th>
-          <th>MP</th>
-          <th>W</th>
-          <th>D</th>
-          <th>L</th>
-          <th>GD</th>
-          <th>Pts</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${standing.table.slice(0, 8).map(standingRowMarkup).join("")}
-      </tbody>
-    </table>
+    ${visibleTables.map(groupTableMarkup).join("")}
   `;
 }
 
@@ -333,6 +325,30 @@ function standingRowMarkup(row) {
       <td>${gd > 0 ? `+${gd}` : gd}</td>
       <td><strong>${row.points ?? 0}</strong></td>
     </tr>
+  `;
+}
+
+function groupTableMarkup(standing) {
+  return `
+    <section class="group-panel">
+      <div class="group-panel-title">${escapeHtml(formatLabel(standing.group || standing.stage || standing.type || "Standings"))}</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Team</th>
+            <th>MP</th>
+            <th>W</th>
+            <th>D</th>
+            <th>L</th>
+            <th>GD</th>
+            <th>Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${standing.table.slice(0, 8).map(standingRowMarkup).join("")}
+        </tbody>
+      </table>
+    </section>
   `;
 }
 
@@ -519,6 +535,9 @@ function advanceSlide() {
   const current = slideEls[activeSlide];
   const currentPosition = eligible.includes(current) ? eligible.indexOf(current) : -1;
   const next = eligible[(currentPosition + 1) % eligible.length];
+  if (currentPosition >= 0 && eligible.indexOf(next) <= currentPosition) {
+    slideCycle += 1;
+  }
   setActiveSlide(next);
 }
 
@@ -535,7 +554,15 @@ function syncActiveSlide() {
 }
 
 function eligibleSlideEls() {
-  return slideEls.filter((slide) => slide.dataset.slide !== "live" || getLiveMatch());
+  return slideEls.filter((slide) => {
+    if (slide.dataset.slide === "live") {
+      return Boolean(getLiveMatch());
+    }
+    if (slide.dataset.slide === "teams") {
+      return slideCycle % 2 === 0;
+    }
+    return true;
+  });
 }
 
 function setActiveSlide(next) {
@@ -545,6 +572,9 @@ function setActiveSlide(next) {
   slideEls[activeSlide]?.classList.remove("active");
   activeSlide = slideEls.indexOf(next);
   next.classList.add("active");
+  if (next.dataset.slide === "groups") {
+    renderStandings();
+  }
 }
 
 function advanceGroup() {
@@ -552,7 +582,7 @@ function advanceGroup() {
   if (!tables.length) {
     return;
   }
-  groupIndex = (groupIndex + 1) % tables.length;
+  groupIndex = (groupIndex + 2) % tables.length;
   if (slideEls[activeSlide]?.dataset.slide === "groups") {
     renderStandings();
   }
