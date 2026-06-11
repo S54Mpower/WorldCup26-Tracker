@@ -1,9 +1,12 @@
 const API_URL = "/api/worldcup";
-const REFRESH_MS = 90_000;
+const REFRESH_MS = 30_000;
 const SLIDE_MS = 12_000;
+const LIVE_SLIDE_MS = 18_000;
 const GROUP_MS = 6_000;
 const HOST_CITIES = 16;
 const TOTAL_MATCHES = 104;
+const LIVE_WINDOW_MS = 150 * 60 * 1000;
+const LIVE_STATUSES = new Set(["IN_PLAY", "PAUSED", "LIVE"]);
 const slideEls = [...document.querySelectorAll(".slide")];
 
 let state = {
@@ -16,11 +19,17 @@ let state = {
 };
 let activeSlide = 0;
 let groupIndex = 0;
+let slideTimer = null;
 
 const els = {
   alertBar: document.querySelector("#alert-bar"),
   groupTitle: document.querySelector("#group-title"),
   lastRefresh: document.querySelector("#last-refresh"),
+  liveCards: document.querySelector("#live-cards"),
+  liveDetails: document.querySelector("#live-details"),
+  liveOfficials: document.querySelector("#live-officials"),
+  liveScoreline: document.querySelector("#live-scoreline"),
+  liveScorers: document.querySelector("#live-scorers"),
   localTime: document.querySelector("#local-time"),
   overviewMetrics: document.querySelector("#overview-metrics"),
   resultGrid: document.querySelector("#result-grid"),
@@ -40,7 +49,7 @@ function init() {
   loadData();
   setInterval(tickClock, 1_000);
   setInterval(loadData, REFRESH_MS);
-  setInterval(advanceSlide, SLIDE_MS);
+  scheduleNextSlide();
   setInterval(advanceGroup, GROUP_MS);
 }
 
@@ -69,12 +78,14 @@ async function loadData() {
 function render() {
   renderStatus();
   renderSpotlight();
+  renderLive();
   renderMetrics();
   renderResults();
   renderSchedule();
   renderStandings();
   renderTeams();
   renderTicker();
+  syncActiveSlide();
 }
 
 function renderStatus() {
@@ -93,7 +104,7 @@ function renderStatus() {
 }
 
 function renderSpotlight() {
-  const live = sortedMatches().find((match) => ["IN_PLAY", "PAUSED", "LIVE"].includes(match.status));
+  const live = getLiveMatch();
   const next = sortedMatches().find((match) => !isComplete(match) && new Date(match.utcDate) >= new Date());
   const latest = [...sortedMatches()].reverse().find(isComplete);
   const spotlight = live || next || latest;
@@ -114,11 +125,34 @@ function renderSpotlight() {
   els.spotlightDetails.innerHTML = detailPills(matchDetails(spotlight));
 }
 
+function renderLive() {
+  const match = getLiveMatch();
+  if (!match) {
+    els.liveScoreline.innerHTML = "";
+    els.liveDetails.innerHTML = "";
+    els.liveScorers.innerHTML = "";
+    els.liveCards.innerHTML = "";
+    els.liveOfficials.innerHTML = "";
+    return;
+  }
+
+  els.liveScoreline.innerHTML = liveScorelineMarkup(match);
+  els.liveDetails.innerHTML = detailPills([
+    matchClockLabel(match),
+    formatLabel(match.group),
+    stageLabel(match),
+    match.venue
+  ].filter(Boolean));
+  els.liveScorers.innerHTML = eventListMarkup(goalEvents(match), "Scorer data pending");
+  els.liveCards.innerHTML = eventListMarkup(cardEvents(match), "Card data pending");
+  els.liveOfficials.innerHTML = officialsMarkup(match);
+}
+
 function renderMetrics() {
   const matches = state.matches;
   const complete = matches.filter(isComplete);
   const scheduled = matches.filter((match) => !isComplete(match));
-  const live = matches.filter((match) => ["IN_PLAY", "PAUSED", "LIVE"].includes(match.status));
+  const live = matches.filter(isLiveMatch);
   const goals = complete.reduce((total, match) => total + scoreValue(match, "home") + scoreValue(match, "away"), 0);
   const season = state.competition?.currentSeason || {};
 
@@ -231,6 +265,26 @@ function matchupMarkup(match, large = false) {
   `;
 }
 
+function liveScorelineMarkup(match) {
+  const home = match.homeTeam || {};
+  const away = match.awayTeam || {};
+  return `
+    <div class="live-team">
+      ${crestMarkup(home)}
+      <span>${escapeHtml(teamName(home))}</span>
+    </div>
+    <div class="live-score">
+      <strong>${scoreDisplay(match, "home")}</strong>
+      <small>${matchClockLabel(match)}</small>
+      <strong>${scoreDisplay(match, "away")}</strong>
+    </div>
+    <div class="live-team">
+      ${crestMarkup(away)}
+      <span>${escapeHtml(teamName(away))}</span>
+    </div>
+  `;
+}
+
 function matchCardMarkup(match) {
   return `
     <section class="result-card">
@@ -290,6 +344,108 @@ function teamMarkup(team) {
   `;
 }
 
+function eventListMarkup(events, emptyText) {
+  if (!events.length) {
+    return `<p class="event-empty">${escapeHtml(emptyText)}</p>`;
+  }
+
+  return events.slice(0, 8).map((event) => `
+    <div class="event-row">
+      <span>${escapeHtml(event.minute)}</span>
+      <strong>${escapeHtml(event.player)}</strong>
+      <small>${escapeHtml(event.detail)}</small>
+    </div>
+  `).join("");
+}
+
+function goalEvents(match) {
+  const explicitGoals = Array.isArray(match.goals) ? match.goals : [];
+  const events = Array.isArray(match.events) ? match.events : [];
+  return [...explicitGoals, ...events.filter(isGoalEvent)].map((event) => eventInfo(event, "Goal"));
+}
+
+function cardEvents(match) {
+  const explicitCards = [
+    ...(Array.isArray(match.cards) ? match.cards : []),
+    ...(Array.isArray(match.bookings) ? match.bookings : [])
+  ];
+  const events = Array.isArray(match.events) ? match.events : [];
+  return [...explicitCards, ...events.filter(isCardEvent)].map((event) => eventInfo(event, cardType(event)));
+}
+
+function eventInfo(event, fallbackDetail) {
+  const player = event.player?.name
+    || event.scorer?.name
+    || event.playerName
+    || event.name
+    || "Player";
+  const team = event.team?.shortName
+    || event.team?.name
+    || event.teamName
+    || "";
+  const detail = [fallbackDetail, team].filter(Boolean).join(" • ");
+  return {
+    minute: eventMinute(event),
+    player,
+    detail
+  };
+}
+
+function isGoalEvent(event) {
+  const text = eventTypeText(event);
+  return text.includes("GOAL") || text.includes("PENALTY_SCORED") || text.includes("OWN_GOAL");
+}
+
+function isCardEvent(event) {
+  const text = eventTypeText(event);
+  return text.includes("CARD") || text.includes("BOOKING") || text.includes("YELLOW") || text.includes("RED");
+}
+
+function cardType(event) {
+  const text = eventTypeText(event);
+  if (text.includes("RED")) {
+    return "Red card";
+  }
+  if (text.includes("YELLOW")) {
+    return "Yellow card";
+  }
+  return "Card";
+}
+
+function eventTypeText(event) {
+  return [
+    event.type,
+    event.detail,
+    event.kind,
+    event.card,
+    event.description
+  ].filter(Boolean).join(" ").toUpperCase();
+}
+
+function eventMinute(event) {
+  const minute = event.minute ?? event.time?.minute ?? event.matchMinute;
+  const extra = event.extraTime ?? event.time?.extra ?? event.stoppageTime;
+  if (!Number.isFinite(Number(minute))) {
+    return "--";
+  }
+  return extra ? `${minute}+${extra}'` : `${minute}'`;
+}
+
+function officialsMarkup(match) {
+  const referees = Array.isArray(match.referees) ? match.referees : [];
+  if (!referees.length) {
+    return `<p class="event-empty">Officials pending</p>`;
+  }
+
+  return referees.slice(0, 4).map((referee) => `
+    <div class="event-row">
+      <span>${escapeHtml((referee.type || "REF").replaceAll("_", " "))}</span>
+      <strong>${escapeHtml(referee.name || "Official")}</strong>
+      <small>${escapeHtml(referee.nationality || "")}</small>
+    </div>
+  `).join("");
+}
+
 function tickerItem(match) {
   const score = isComplete(match)
     ? `${scoreDisplay(match, "home")}-${scoreDisplay(match, "away")}`
@@ -337,10 +493,54 @@ function emptyBlock(title, detail) {
   `;
 }
 
+function scheduleNextSlide() {
+  window.clearTimeout(slideTimer);
+  slideTimer = window.setTimeout(() => {
+    advanceSlide();
+    scheduleNextSlide();
+  }, currentSlideDuration());
+}
+
+function currentSlideDuration() {
+  const active = slideEls[activeSlide];
+  return active?.dataset.slide === "live" && getLiveMatch() ? LIVE_SLIDE_MS : SLIDE_MS;
+}
+
 function advanceSlide() {
-  slideEls[activeSlide].classList.remove("active");
-  activeSlide = (activeSlide + 1) % slideEls.length;
-  slideEls[activeSlide].classList.add("active");
+  const eligible = eligibleSlideEls();
+  if (!eligible.length) {
+    return;
+  }
+
+  const current = slideEls[activeSlide];
+  const currentPosition = eligible.includes(current) ? eligible.indexOf(current) : -1;
+  const next = eligible[(currentPosition + 1) % eligible.length];
+  setActiveSlide(next);
+}
+
+function syncActiveSlide() {
+  const liveMatch = getLiveMatch();
+  slideEls.forEach((slide) => {
+    slide.classList.toggle("is-disabled", slide.dataset.slide === "live" && !liveMatch);
+  });
+
+  if (!eligibleSlideEls().includes(slideEls[activeSlide])) {
+    setActiveSlide(eligibleSlideEls()[0]);
+    scheduleNextSlide();
+  }
+}
+
+function eligibleSlideEls() {
+  return slideEls.filter((slide) => slide.dataset.slide !== "live" || getLiveMatch());
+}
+
+function setActiveSlide(next) {
+  if (!next) {
+    return;
+  }
+  slideEls[activeSlide]?.classList.remove("active");
+  activeSlide = slideEls.indexOf(next);
+  next.classList.add("active");
 }
 
 function advanceGroup() {
@@ -366,12 +566,35 @@ function sortedMatches() {
   return [...state.matches].sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate));
 }
 
+function getLiveMatch() {
+  return sortedMatches().find(isLiveMatch);
+}
+
+function isLiveMatch(match) {
+  if (!match || isComplete(match)) {
+    return false;
+  }
+  return LIVE_STATUSES.has(match.status) || isInLiveClockWindow(match);
+}
+
+function isInLiveClockWindow(match) {
+  if (!["TIMED", "SCHEDULED"].includes(match.status)) {
+    return false;
+  }
+  const kickoff = new Date(match.utcDate).getTime();
+  if (!Number.isFinite(kickoff)) {
+    return false;
+  }
+  const elapsed = Date.now() - kickoff;
+  return elapsed >= 0 && elapsed <= LIVE_WINDOW_MS;
+}
+
 function isComplete(match) {
   return match.status === "FINISHED" || match.status === "AWARDED";
 }
 
 function scoreDisplay(match, side) {
-  if (!hasScore(match) && !["IN_PLAY", "PAUSED", "LIVE"].includes(match.status)) {
+  if (!hasScore(match) && !isLiveMatch(match)) {
     return "-";
   }
   const value = scoreValue(match, side);
@@ -401,10 +624,40 @@ function statusLabel(match) {
   if (!match.status) {
     return "TBD";
   }
+  if (isLiveMatch(match)) {
+    return matchClockLabel(match);
+  }
   if (match.status === "TIMED" || match.status === "SCHEDULED") {
     return formatTime(match.utcDate);
   }
   return match.status.replaceAll("_", " ");
+}
+
+function matchClockLabel(match) {
+  if (match.status === "PAUSED") {
+    return "HALF TIME";
+  }
+  const apiMinute = match.minute ?? match.score?.minute;
+  if (Number.isFinite(Number(apiMinute))) {
+    return `${apiMinute}'`;
+  }
+
+  const kickoff = new Date(match.utcDate).getTime();
+  if (!Number.isFinite(kickoff)) {
+    return LIVE_STATUSES.has(match.status) ? "LIVE" : statusLabel(match);
+  }
+
+  const elapsedMinutes = Math.max(1, Math.floor((Date.now() - kickoff) / 60_000) + 1);
+  if (elapsedMinutes <= 45) {
+    return `${elapsedMinutes}'`;
+  }
+  if (elapsedMinutes <= 60) {
+    return "HALF TIME";
+  }
+  if (elapsedMinutes <= 105) {
+    return `${Math.min(90, elapsedMinutes - 15)}'`;
+  }
+  return "90+'";
 }
 
 function stageLabel(match) {

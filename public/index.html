@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>World Cup 2026 OBS Dashboard</title>
-    <link rel="stylesheet" href="/styles.css?v=20260611a" />
+    <link rel="stylesheet" href="/styles.css?v=20260611b" />
   </head>
   <body>
     <main class="stage" aria-live="polite">
@@ -39,6 +39,30 @@
             <div class="match-details" id="spotlight-details"></div>
           </div>
           <div class="metrics" id="overview-metrics"></div>
+        </article>
+
+        <article class="slide live-slide" data-slide="live">
+          <section class="live-main">
+            <div>
+              <p class="section-kicker">Live Match</p>
+              <div class="live-scoreline" id="live-scoreline"></div>
+              <div class="match-details" id="live-details"></div>
+            </div>
+          </section>
+          <section class="live-events">
+            <div class="event-panel">
+              <h3>Scorers</h3>
+              <div id="live-scorers"></div>
+            </div>
+            <div class="event-panel">
+              <h3>Cards</h3>
+              <div id="live-cards"></div>
+            </div>
+            <div class="event-panel">
+              <h3>Officials</h3>
+              <div id="live-officials"></div>
+            </div>
+          </section>
         </article>
 
         <article class="slide" data-slide="results">
@@ -81,6 +105,6 @@
       </footer>
     </main>
 
-    <script src="/app.js?v=20260611a" type="module"></script>
+    <script src="/app.js?v=20260611b" type="module"></script>
   </body>
 </html>

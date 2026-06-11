@@ -9,7 +9,7 @@ const publicDir = path.join(__dirname, "public");
 const apiBase = "https://api.football-data.org/v4";
 const port = Number(process.env.PORT || loadEnv().PORT || 4326);
 const token = process.env.FOOTBALL_DATA_TOKEN || loadEnv().FOOTBALL_DATA_TOKEN || "";
-const cacheMs = Number(process.env.CACHE_MS || 90_000);
+const cacheMs = Number(process.env.CACHE_MS || 30_000);
 
 let cachedPayload = null;
 let cachedAt = 0;
