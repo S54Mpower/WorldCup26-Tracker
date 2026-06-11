@@ -121,7 +121,7 @@ function renderSpotlight() {
   }
 
   els.spotlightLabel.textContent = live ? "Live Now" : isComplete(spotlight) ? "Latest Result" : "Next Match";
-  els.spotlightMatch.innerHTML = matchupMarkup(spotlight, true);
+  els.spotlightMatch.innerHTML = matchupMarkup(spotlight, { large: true });
   els.spotlightDetails.innerHTML = detailPills(matchDetails(spotlight));
 }
 
@@ -242,25 +242,27 @@ function renderTicker() {
   els.tickerTrack.innerHTML = [...content, ...content].map((item) => `<span>${escapeHtml(item)}</span>`).join("");
 }
 
-function matchupMarkup(match, large = false) {
+function matchupMarkup(match, options = {}) {
+  const large = Boolean(options.large);
+  const compact = Boolean(options.compact);
   const home = match.homeTeam || {};
   const away = match.awayTeam || {};
   const homeScore = scoreDisplay(match, "home");
   const awayScore = scoreDisplay(match, "away");
 
   return `
-    <div class="team ${large ? "large" : ""}">
+    <div class="team ${large ? "large" : ""} ${compact ? "compact-code" : ""}">
       ${crestMarkup(home)}
-      <span>${escapeHtml(teamName(home))}</span>
+      <span>${escapeHtml(compact ? teamCode(home) : teamName(home))}</span>
     </div>
     <div class="score-block">
       <span>${homeScore}</span>
       <small>${statusLabel(match)}</small>
       <span>${awayScore}</span>
     </div>
-    <div class="team ${large ? "large" : ""}">
+    <div class="team ${large ? "large" : ""} ${compact ? "compact-code" : ""}">
       ${crestMarkup(away)}
-      <span>${escapeHtml(teamName(away))}</span>
+      <span>${escapeHtml(compact ? teamCode(away) : teamName(away))}</span>
     </div>
   `;
 }
@@ -292,7 +294,7 @@ function matchCardMarkup(match) {
         <span>${formatDate(match.utcDate)}</span>
         <span>${stageLabel(match)}</span>
       </div>
-      <div class="compact-matchup">${matchupMarkup(match)}</div>
+      <div class="compact-matchup">${matchupMarkup(match, { compact: true })}</div>
     </section>
   `;
 }
@@ -338,8 +340,7 @@ function teamMarkup(team) {
   return `
     <section class="team-tile">
       ${crestMarkup(team)}
-      <span>${escapeHtml(team.tla || shortName(team))}</span>
-      <small>${escapeHtml(shortName(team))}</small>
+      <span>${escapeHtml(teamCode(team))}</span>
     </section>
   `;
 }
@@ -680,6 +681,10 @@ function teamName(team = {}) {
 
 function shortName(team = {}) {
   return team.shortName || team.name || team.tla || "TBD";
+}
+
+function teamCode(team = {}) {
+  return (team.tla || team.code || team.shortName || team.name || "TBD").slice(0, 3).toUpperCase();
 }
 
 function formatDate(value) {
