@@ -5,6 +5,7 @@ services:
     restart: unless-stopped
     environment:
       FOOTBALL_DATA_TOKEN: ${FOOTBALL_DATA_TOKEN:-}
+      FIFA_LIVE_ENABLED: ${FIFA_LIVE_ENABLED:-true}
       PORT: ${PORT:-4326}
     ports:
       - "${HOST_PORT:-4326}:${PORT:-4326}"

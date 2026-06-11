@@ -425,6 +425,9 @@ function eventTypeText(event) {
 function eventMinute(event) {
   const minute = event.minute ?? event.time?.minute ?? event.matchMinute;
   const extra = event.extraTime ?? event.time?.extra ?? event.stoppageTime;
+  if (typeof minute === "string" && minute.trim()) {
+    return minute.trim();
+  }
   if (!Number.isFinite(Number(minute))) {
     return "--";
   }
@@ -636,6 +639,9 @@ function statusLabel(match) {
 function matchClockLabel(match) {
   if (match.status === "PAUSED") {
     return "HALF TIME";
+  }
+  if (typeof match.clock === "string" && match.clock.trim()) {
+    return match.clock.trim();
   }
   const apiMinute = match.minute ?? match.score?.minute;
   if (Number.isFinite(Number(apiMinute))) {

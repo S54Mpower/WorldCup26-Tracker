@@ -7,6 +7,7 @@ The dashboard is designed to run without interaction during a stream. It rotates
 ## Features
 
 - Live data proxy for football-data.org v4
+- Optional FIFA public match-centre live feed for match clock, live score, scorers, bookings, formations, and officials
 - Auto-refreshing World Cup 2026 schedule, teams, and standings
 - OBS-friendly 1920x1080 broadcast layout
 - Auto-rotating slides with no clicks required
@@ -33,6 +34,7 @@ Add your football-data.org token:
 ```bash
 FOOTBALL_DATA_TOKEN=your_token_here
 PORT=4326
+FIFA_LIVE_ENABLED=true
 ```
 
 Start the dashboard:
@@ -75,9 +77,10 @@ For Portainer or another stack manager, add these stack environment variables:
 FOOTBALL_DATA_TOKEN=your_token_here
 PORT=4326
 HOST_PORT=4326
+FIFA_LIVE_ENABLED=true
 ```
 
-`FOOTBALL_DATA_TOKEN` is required for live API data. `PORT` is the internal container port and `HOST_PORT` is the host port exposed to OBS. Compose maps `HOST_PORT` to `PORT`; if either value is omitted, it uses `4326`.
+`FOOTBALL_DATA_TOKEN` is required for football-data.org schedule data. `FIFA_LIVE_ENABLED` enables the free public FIFA live match-centre feed; set it to `false` if FIFA changes or blocks that endpoint. `PORT` is the internal container port and `HOST_PORT` is the host port exposed to OBS. Compose maps `HOST_PORT` to `PORT`; if either value is omitted, it uses `4326`.
 
 ## OBS
 
@@ -89,7 +92,7 @@ Width: 1920
 Height: 1080
 ```
 
-The dashboard refreshes API data every 90 seconds and rotates slides every 12 seconds.
+The dashboard refreshes API data every 30 seconds and rotates slides every 12 seconds. The live slide stays on screen for 18 seconds when a FIFA live match is active.
 
 ## Validation
 
@@ -102,7 +105,7 @@ node --check public/app.js
 
 ## API
 
-Data is loaded from football-data.org through the local Node proxy at:
+Data is loaded from football-data.org and optionally enriched with FIFA public match-centre live data through the local Node proxy at:
 
 ```text
 /api/worldcup
