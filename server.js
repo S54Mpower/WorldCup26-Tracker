@@ -254,12 +254,13 @@ function mergeFifaMatch(match, fifaMatch) {
   const awayScore = fifaMatch.AwayTeam?.Score ?? fifaMatch.Away?.Score;
   const live = isFifaLiveMatch(fifaMatch);
   const minute = minuteFromFifaClock(fifaMatch.MatchTime);
+  const status = fifaMatchStatus(fifaMatch) || match.status;
 
   return {
     ...match,
     source: match.source ? `${match.source}, fifa` : "fifa",
     fifaMatchId: fifaMatch.IdMatch,
-    status: live ? "IN_PLAY" : match.status,
+    status,
     minute: Number.isFinite(minute) ? minute : match.minute,
     clock: fifaMatch.MatchTime || match.clock,
     venue: fifaVenue(fifaMatch) || match.venue,
@@ -357,7 +358,17 @@ function compareEventMinute(a, b) {
 }
 
 function isFifaLiveMatch(match) {
-  return match?.MatchStatus === 3 || Boolean(match?.MatchTime);
+  return match?.MatchStatus === 3;
+}
+
+function fifaMatchStatus(match) {
+  if (match?.MatchStatus === 3) {
+    return "IN_PLAY";
+  }
+  if (match?.MatchStatus === 0) {
+    return "FINISHED";
+  }
+  return null;
 }
 
 function minuteFromFifaClock(value) {
