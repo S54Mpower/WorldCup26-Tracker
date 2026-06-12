@@ -28,7 +28,6 @@ const els = {
   lastRefresh: document.querySelector("#last-refresh"),
   liveCards: document.querySelector("#live-cards"),
   liveDetails: document.querySelector("#live-details"),
-  liveOfficials: document.querySelector("#live-officials"),
   liveScoreline: document.querySelector("#live-scoreline"),
   liveScorers: document.querySelector("#live-scorers"),
   localTime: document.querySelector("#local-time"),
@@ -133,7 +132,6 @@ function renderLive() {
     els.liveDetails.innerHTML = "";
     els.liveScorers.innerHTML = "";
     els.liveCards.innerHTML = "";
-    els.liveOfficials.innerHTML = "";
     return;
   }
 
@@ -142,11 +140,11 @@ function renderLive() {
     matchClockLabel(match),
     formatLabel(match.group),
     stageLabel(match),
-    match.venue
+    match.venue,
+    refereeLabel(match)
   ].filter(Boolean));
   els.liveScorers.innerHTML = eventListMarkup(goalEvents(match), "Scorer data pending");
   els.liveCards.innerHTML = eventListMarkup(cardEvents(match), "Card data pending");
-  els.liveOfficials.innerHTML = officialsMarkup(match);
 }
 
 function renderMetrics() {
@@ -361,13 +359,17 @@ function eventListMarkup(events, emptyText) {
     return `<p class="event-empty">${escapeHtml(emptyText)}</p>`;
   }
 
-  return events.slice(0, 8).map((event) => `
-    <div class="event-row">
-      <span>${escapeHtml(event.minute)}</span>
-      <strong>${escapeHtml(event.player)}</strong>
-      <small>${escapeHtml(event.detail)}</small>
+  return `
+    <div class="event-list ${events.length > 8 ? "is-dense" : ""}">
+      ${events.map((event) => `
+        <div class="event-row">
+          <span>${escapeHtml(event.minute)}</span>
+          <strong>${escapeHtml(event.player)}</strong>
+          <small>${escapeHtml(event.detail)}</small>
+        </div>
+      `).join("")}
     </div>
-  `).join("");
+  `;
 }
 
 function goalEvents(match) {
@@ -446,19 +448,10 @@ function eventMinute(event) {
   return extra ? `${minute}+${extra}'` : `${minute}'`;
 }
 
-function officialsMarkup(match) {
+function refereeLabel(match) {
   const referees = Array.isArray(match.referees) ? match.referees : [];
-  if (!referees.length) {
-    return `<p class="event-empty">Officials pending</p>`;
-  }
-
-  return referees.slice(0, 4).map((referee) => `
-    <div class="event-row">
-      <span>${escapeHtml((referee.type || "REF").replaceAll("_", " "))}</span>
-      <strong>${escapeHtml(referee.name || "Official")}</strong>
-      <small>${escapeHtml(referee.nationality || "")}</small>
-    </div>
-  `).join("");
+  const referee = referees.find((official) => (official.type || "").toUpperCase().includes("REFEREE")) || referees[0];
+  return referee?.name ? `Referee: ${referee.name}` : "";
 }
 
 function tickerItem(match) {
