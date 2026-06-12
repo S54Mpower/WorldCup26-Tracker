@@ -821,6 +821,57 @@ function groupTables() {
       stage: "GROUP_STAGE",
       type: "TOTAL",
       group,
-      table: [...teamIds].map((teamId) => rowByTeamId.get(teamId)).filter(Boolean)
+      table: sortGroupRows(group, [...teamIds].map((teamId) => rowByTeamId.get(teamId)).filter(Boolean))
     }));
+}
+
+function sortGroupRows(group, rows) {
+  return rows.sort((a, b) => compareStandingRows(a, b, group));
+}
+
+function compareStandingRows(a, b, group) {
+  return numberValue(b.points) - numberValue(a.points)
+    || numberValue(b.goalDifference) - numberValue(a.goalDifference)
+    || numberValue(b.goalsFor) - numberValue(a.goalsFor)
+    || compareHeadToHeadRows(a, b, group)
+    || teamName(a.team).localeCompare(teamName(b.team), undefined, { sensitivity: "base" });
+}
+
+function compareHeadToHeadRows(a, b, group) {
+  const aTeamId = a.team?.id;
+  const bTeamId = b.team?.id;
+  if (!aTeamId || !bTeamId) {
+    return 0;
+  }
+
+  const headToHead = state.matches
+    .filter((match) => match.group === group && isComplete(match))
+    .filter((match) => {
+      const ids = [match.homeTeam?.id, match.awayTeam?.id];
+      return ids.includes(aTeamId) && ids.includes(bTeamId);
+    });
+
+  const aRecord = headToHeadRecord(aTeamId, headToHead);
+  const bRecord = headToHeadRecord(bTeamId, headToHead);
+  return bRecord.points - aRecord.points
+    || bRecord.goalDifference - aRecord.goalDifference
+    || bRecord.goalsFor - aRecord.goalsFor;
+}
+
+function headToHeadRecord(teamId, matches) {
+  return matches.reduce((record, match) => {
+    const isHome = match.homeTeam?.id === teamId;
+    const goalsFor = scoreValue(match, isHome ? "home" : "away");
+    const goalsAgainst = scoreValue(match, isHome ? "away" : "home");
+    const points = goalsFor > goalsAgainst ? 3 : goalsFor === goalsAgainst ? 1 : 0;
+    return {
+      points: record.points + points,
+      goalsFor: record.goalsFor + goalsFor,
+      goalDifference: record.goalDifference + goalsFor - goalsAgainst
+    };
+  }, { points: 0, goalsFor: 0, goalDifference: 0 });
+}
+
+function numberValue(value) {
+  return Number.isFinite(Number(value)) ? Number(value) : 0;
 }
