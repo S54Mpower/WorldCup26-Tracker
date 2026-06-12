@@ -668,10 +668,10 @@ h2 {
 
 .group-panel-title {
   flex: 0 0 auto;
-  padding: 7px 12px;
+  padding: 5px 10px;
   border-bottom: 1px solid var(--line);
   color: var(--gold);
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 950;
   line-height: 1;
   text-transform: uppercase;
@@ -679,23 +679,22 @@ h2 {
 
 table {
   width: 100%;
-  height: 100%;
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
 }
 
 th,
 td {
-  padding: 5px 9px;
+  padding: 3px 8px;
   border-bottom: 1px solid var(--line);
-  font-size: 16px;
-  line-height: 1.05;
+  font-size: 14px;
+  line-height: 1;
   text-align: center;
 }
 
 th {
   color: var(--gold);
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
 }
 
@@ -708,15 +707,15 @@ th:first-child {
 .table-team {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
   font-weight: 850;
 }
 
 .table-team img,
 .table-team i {
-  width: 23px;
-  height: 23px;
+  width: 18px;
+  height: 18px;
   flex: 0 0 auto;
 }
 
