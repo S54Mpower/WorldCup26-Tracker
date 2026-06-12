@@ -1,5 +1,4 @@
-const DEMO_LIVE = new URLSearchParams(window.location.search).get("demo") === "live";
-const API_URL = `/api/worldcup${DEMO_LIVE ? "?demo=live" : ""}`;
+const API_URL = "/api/worldcup";
 const REFRESH_MS = 30_000;
 const SLIDE_MS = 12_000;
 const LIVE_SLIDE_MS = 18_000;
@@ -87,9 +86,6 @@ function render() {
   renderTeams();
   renderTicker();
   syncActiveSlide();
-  if (DEMO_LIVE) {
-    setActiveSlide(slideEls.find((slide) => slide.dataset.slide === "live"));
-  }
 }
 
 function renderStatus() {

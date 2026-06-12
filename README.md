@@ -35,7 +35,6 @@ Add your football-data.org token:
 FOOTBALL_DATA_TOKEN=your_token_here
 PORT=4326
 FIFA_LIVE_ENABLED=true
-DEMO_LIVE=false
 ```
 
 Start the dashboard:
@@ -79,10 +78,9 @@ FOOTBALL_DATA_TOKEN=your_token_here
 PORT=4326
 HOST_PORT=4326
 FIFA_LIVE_ENABLED=true
-DEMO_LIVE=false
 ```
 
-`FOOTBALL_DATA_TOKEN` is required for football-data.org schedule data. `FIFA_LIVE_ENABLED` enables the free public FIFA live match-centre feed; set it to `false` if FIFA changes or blocks that endpoint. `DEMO_LIVE=true` forces a local sample live match for layout preview. `PORT` is the internal container port and `HOST_PORT` is the host port exposed to OBS. Compose maps `HOST_PORT` to `PORT`; if either value is omitted, it uses `4326`.
+`FOOTBALL_DATA_TOKEN` is required for football-data.org schedule data. `FIFA_LIVE_ENABLED` enables the free public FIFA live match-centre feed; set it to `false` if FIFA changes or blocks that endpoint. `PORT` is the internal container port and `HOST_PORT` is the host port exposed to OBS. Compose maps `HOST_PORT` to `PORT`; if either value is omitted, it uses `4326`.
 
 ## OBS
 
@@ -95,18 +93,6 @@ Height: 1080
 ```
 
 The dashboard refreshes API data every 30 seconds and rotates slides every 12 seconds. The live slide stays on screen for 18 seconds when a FIFA live match is active.
-
-Preview the live slide without a real live match:
-
-```text
-http://localhost:4326/?demo=live
-```
-
-Use the normal OBS URL for production:
-
-```text
-http://localhost:4326
-```
 
 ## Validation
 
