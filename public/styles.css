@@ -636,7 +636,8 @@ h2 {
 .standings-board {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 14px;
   min-height: 0;
   overflow: hidden;
 }
@@ -653,10 +654,10 @@ h2 {
 }
 
 .group-panel-title {
-  padding: 14px 16px;
+  padding: 9px 12px;
   border-bottom: 1px solid var(--line);
   color: var(--gold);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 950;
   text-transform: uppercase;
 }
@@ -669,15 +670,15 @@ table {
 
 th,
 td {
-  padding: 12px 13px;
+  padding: 7px 10px;
   border-bottom: 1px solid var(--line);
-  font-size: 20px;
+  font-size: 17px;
   text-align: center;
 }
 
 th {
   color: var(--gold);
-  font-size: 15px;
+  font-size: 12px;
   text-transform: uppercase;
 }
 
@@ -690,15 +691,15 @@ th:first-child {
 .table-team {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   min-width: 0;
   font-weight: 850;
 }
 
 .table-team img,
 .table-team i {
-  width: 30px;
-  height: 30px;
+  width: 25px;
+  height: 25px;
   flex: 0 0 auto;
 }
 

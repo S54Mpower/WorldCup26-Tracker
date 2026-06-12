@@ -2,6 +2,7 @@ const API_URL = "/api/worldcup";
 const REFRESH_MS = 30_000;
 const SLIDE_MS = 12_000;
 const LIVE_SLIDE_MS = 18_000;
+const GROUP_SLIDE_MS = 17_000;
 const GROUP_MS = 6_000;
 const HOST_CITIES = 16;
 const TOTAL_MATCHES = 104;
@@ -24,7 +25,6 @@ let slideTimer = null;
 
 const els = {
   alertBar: document.querySelector("#alert-bar"),
-  groupTitle: document.querySelector("#group-title"),
   lastRefresh: document.querySelector("#last-refresh"),
   liveCards: document.querySelector("#live-cards"),
   liveDetails: document.querySelector("#live-details"),
@@ -193,19 +193,14 @@ function renderSchedule() {
 function renderStandings() {
   const tables = groupTables();
   if (!tables.length) {
-    els.groupTitle.textContent = "Standings";
     els.standingsBoard.innerHTML = emptyBlock("Group standings pending", "Tables appear automatically when the API publishes them.");
     return;
   }
 
-  const visibleTables = [tables[groupIndex % tables.length]];
-  if (tables.length > 1) {
-    visibleTables.push(tables[(groupIndex + 1) % tables.length]);
-  }
+  const visibleTables = Array.from({ length: Math.min(4, tables.length) }, (_, offset) => (
+    tables[(groupIndex + offset) % tables.length]
+  ));
 
-  els.groupTitle.textContent = visibleTables
-    .map((standing) => formatLabel(standing.group || standing.stage || standing.type || "Standings"))
-    .join(" / ");
   els.standingsBoard.innerHTML = `
     ${visibleTables.map(groupTableMarkup).join("")}
   `;
@@ -523,7 +518,13 @@ function scheduleNextSlide() {
 
 function currentSlideDuration() {
   const active = slideEls[activeSlide];
-  return active?.dataset.slide === "live" && getLiveMatch() ? LIVE_SLIDE_MS : SLIDE_MS;
+  if (active?.dataset.slide === "live" && getLiveMatch()) {
+    return LIVE_SLIDE_MS;
+  }
+  if (active?.dataset.slide === "groups") {
+    return GROUP_SLIDE_MS;
+  }
+  return SLIDE_MS;
 }
 
 function advanceSlide() {
@@ -582,7 +583,7 @@ function advanceGroup() {
   if (!tables.length) {
     return;
   }
-  groupIndex = (groupIndex + 2) % tables.length;
+  groupIndex = (groupIndex + 4) % tables.length;
   if (slideEls[activeSlide]?.dataset.slide === "groups") {
     renderStandings();
   }
