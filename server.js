@@ -11,6 +11,7 @@ const fifaApiBase = "https://api.fifa.com/api/v3";
 const port = Number(process.env.PORT || loadEnv().PORT || 4326);
 const token = process.env.FOOTBALL_DATA_TOKEN || loadEnv().FOOTBALL_DATA_TOKEN || "";
 const fifaLiveEnabled = (process.env.FIFA_LIVE_ENABLED || loadEnv().FIFA_LIVE_ENABLED || "true") !== "false";
+const demoLiveEnabled = isTruthy(process.env.DEMO_LIVE || process.env.demo_live || loadEnv().DEMO_LIVE || loadEnv().demo_live);
 const cacheMs = Number(process.env.CACHE_MS || 30_000);
 
 let cachedPayload = null;
@@ -142,10 +143,11 @@ async function safeApi(label, endpoint) {
   }
 }
 
-async function getWorldCupData(force = false) {
+async function getWorldCupData(force = false, demoLive = false) {
   const now = Date.now();
   if (!force && cachedPayload && now - cachedAt < cacheMs) {
-    return { ...cachedPayload, cached: true };
+    const payload = { ...cachedPayload, cached: true };
+    return demoLive ? withDemoLive(payload) : payload;
   }
 
   if (!inFlight) {
@@ -195,7 +197,71 @@ async function getWorldCupData(force = false) {
       });
   }
 
-  return inFlight;
+  const payload = await inFlight;
+  return demoLive ? withDemoLive(payload) : payload;
+}
+
+function withDemoLive(payload) {
+  const demoMatch = demoLiveMatch();
+  const matches = Array.isArray(payload.matches) ? payload.matches : [];
+  return {
+    ...payload,
+    source: `${payload.source || "demo"} + demo live`,
+    demo: "live",
+    refreshedAt: new Date().toISOString(),
+    competition: payload.competition || fallbackCompetition(),
+    matches: [demoMatch, ...matches.filter((match) => match.id !== demoMatch.id)],
+    errors: []
+  };
+}
+
+function demoLiveMatch() {
+  return {
+    id: "demo-live",
+    status: "IN_PLAY",
+    clock: "76'",
+    minute: 76,
+    utcDate: new Date(Date.now() - 76 * 60 * 1000).toISOString(),
+    stage: "GROUP_STAGE",
+    group: "GROUP A",
+    venue: "Demo Stadium, OBS Preview",
+    homeTeam: { id: "demo-home", name: "Mexico", shortName: "Mexico", tla: "MEX" },
+    awayTeam: { id: "demo-away", name: "South Africa", shortName: "South Africa", tla: "RSA" },
+    score: {
+      winner: null,
+      duration: "REGULAR",
+      fullTime: { home: 4, away: 3 },
+      regularTime: { home: 4, away: 3 },
+      halfTime: { home: 2, away: 1 }
+    },
+    goals: [
+      demoEvent("7'", "Julian QUINONES", "Goal", "Mexico"),
+      demoEvent("18'", "Hirving LOZANO", "Goal", "Mexico"),
+      demoEvent("31'", "Themba ZWANE", "Goal", "South Africa"),
+      demoEvent("49'", "Santiago GIMENEZ", "Goal", "Mexico"),
+      demoEvent("54'", "Evidence MAKGOPA", "Goal", "South Africa"),
+      demoEvent("68'", "Edson ALVAREZ", "Goal", "Mexico"),
+      demoEvent("74'", "Teboho MOKOENA", "Penalty", "South Africa")
+    ],
+    bookings: [
+      demoEvent("12'", "Brian GUTIERREZ", "Yellow card", "Mexico"),
+      demoEvent("22'", "Aubrey MODIBA", "Yellow card", "South Africa"),
+      demoEvent("36'", "Cesar MONTES", "Yellow card", "Mexico"),
+      demoEvent("41'", "Mbekezeli MBOKAZI", "Yellow card", "South Africa"),
+      demoEvent("55'", "Luis CHAVEZ", "Yellow card", "Mexico"),
+      demoEvent("62'", "Ronwen WILLIAMS", "Yellow card", "South Africa"),
+      demoEvent("69'", "Johan VASQUEZ", "Yellow card", "Mexico"),
+      demoEvent("72'", "Teboho MOKOENA", "Yellow card", "South Africa"),
+      demoEvent("78'", "Gerardo ARTEAGA", "Red card", "Mexico"),
+      demoEvent("82'", "Khuliso MUDAU", "Yellow card", "South Africa"),
+      demoEvent("88'", "Erick SANCHEZ", "Yellow card", "Mexico")
+    ],
+    referees: [{ name: "Wilton SAMPAIO", type: "Referee", nationality: "BRA" }]
+  };
+}
+
+function demoEvent(minute, playerName, detail, teamName) {
+  return { minute, playerName, detail, teamName };
 }
 
 async function enrichMatchesWithFifa(matches) {
@@ -412,6 +478,10 @@ function normalizeText(value) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+function isTruthy(value) {
+  return ["1", "true", "yes", "on"].includes(String(value || "").trim().toLowerCase());
+}
+
 function fallbackCompetition() {
   return {
     id: 2000,
@@ -475,7 +545,8 @@ const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     if (url.pathname === "/api/worldcup") {
       const force = url.searchParams.get("force") === "1";
-      await sendJson(res, 200, await getWorldCupData(force));
+      const demoLive = demoLiveEnabled || url.searchParams.get("demo") === "live";
+      await sendJson(res, 200, await getWorldCupData(force, demoLive));
       return;
     }
 

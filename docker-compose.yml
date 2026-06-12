@@ -6,6 +6,8 @@ services:
     environment:
       FOOTBALL_DATA_TOKEN: ${FOOTBALL_DATA_TOKEN:-}
       FIFA_LIVE_ENABLED: ${FIFA_LIVE_ENABLED:-true}
+      DEMO_LIVE: ${DEMO_LIVE:-false}
+      demo_live: ${demo_live:-false}
       PORT: ${PORT:-4326}
     ports:
       - "${HOST_PORT:-4326}:${PORT:-4326}"
