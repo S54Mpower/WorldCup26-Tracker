@@ -719,6 +719,34 @@ th:first-child {
   flex: 0 0 auto;
 }
 
+@media (min-height: 900px) {
+  .group-panel-title {
+    padding: 7px 13px;
+    font-size: 20px;
+  }
+
+  th,
+  td {
+    padding: 4px 10px;
+    font-size: 18px;
+    line-height: 1.05;
+  }
+
+  th {
+    font-size: 14px;
+  }
+
+  .table-team {
+    gap: 8px;
+  }
+
+  .table-team img,
+  .table-team i {
+    width: 24px;
+    height: 24px;
+  }
+}
+
 .team-wall {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
