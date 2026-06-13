@@ -307,17 +307,15 @@ function scheduleRowMarkup(match, index) {
 function standingRowMarkup(row) {
   const gd = Number(row.goalDifference || 0);
   return `
-    <tr>
-      <td>
-        <span class="table-team">${crestMarkup(row.team)} ${escapeHtml(teamName(row.team))}</span>
-      </td>
-      <td>${row.playedGames ?? 0}</td>
-      <td>${row.won ?? 0}</td>
-      <td>${row.draw ?? 0}</td>
-      <td>${row.lost ?? 0}</td>
-      <td>${gd > 0 ? `+${gd}` : gd}</td>
-      <td><strong>${row.points ?? 0}</strong></td>
-    </tr>
+    <div class="group-row" role="row">
+      <span class="table-team" role="cell">${crestMarkup(row.team)} ${escapeHtml(teamName(row.team))}</span>
+      <span role="cell">${row.playedGames ?? 0}</span>
+      <span role="cell">${row.won ?? 0}</span>
+      <span role="cell">${row.draw ?? 0}</span>
+      <span role="cell">${row.lost ?? 0}</span>
+      <span role="cell">${gd > 0 ? `+${gd}` : gd}</span>
+      <span role="cell"><strong>${row.points ?? 0}</strong></span>
+    </div>
   `;
 }
 
@@ -325,22 +323,18 @@ function groupTableMarkup(standing) {
   return `
     <section class="group-panel">
       <div class="group-panel-title">${escapeHtml(formatLabel(standing.group || standing.stage || standing.type || "Standings"))}</div>
-      <table>
-        <thead>
-          <tr>
-            <th>Team</th>
-            <th>MP</th>
-            <th>W</th>
-            <th>D</th>
-            <th>L</th>
-            <th>GD</th>
-            <th>Pts</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${standing.table.slice(0, 8).map(standingRowMarkup).join("")}
-        </tbody>
-      </table>
+      <div class="group-table" role="table">
+        <div class="group-row group-head" role="row">
+          <span role="columnheader">Team</span>
+          <span role="columnheader">MP</span>
+          <span role="columnheader">W</span>
+          <span role="columnheader">D</span>
+          <span role="columnheader">L</span>
+          <span role="columnheader">GD</span>
+          <span role="columnheader">Pts</span>
+        </div>
+        ${standing.table.slice(0, 8).map(standingRowMarkup).join("")}
+      </div>
     </section>
   `;
 }
