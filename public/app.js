@@ -105,11 +105,33 @@ function renderStatus() {
 
 function renderSpotlight() {
   const live = getLiveMatch();
-  const next = sortedMatches().find((match) => !isComplete(match) && new Date(match.utcDate) >= new Date());
+  const upcoming = getUpcomingMatches(3);
   const latest = [...sortedMatches()].reverse().find(isComplete);
-  const spotlight = live || next || latest;
+
+  if (live) {
+    setSpotlightLayout("single");
+    els.spotlightLabel.textContent = "Live Now";
+    els.spotlightMatch.innerHTML = matchupMarkup(live, { large: true });
+    els.spotlightDetails.innerHTML = detailPills(matchDetails(live));
+    return;
+  }
+
+  if (upcoming.length > 1) {
+    setSpotlightLayout("pair");
+    els.spotlightLabel.textContent = "Next Matches";
+    els.spotlightMatch.innerHTML = upcoming.map(nextGameMarkup).join("");
+    els.spotlightDetails.innerHTML = detailPills([
+      `${upcoming.length} fixtures queued`,
+      `First kickoff ${formatDateTime(upcoming[0].utcDate)}`,
+      `Through ${formatDateTime(upcoming[upcoming.length - 1].utcDate)}`
+    ]);
+    return;
+  }
+
+  const spotlight = upcoming[0] || latest;
 
   if (!spotlight) {
+    setSpotlightLayout("single");
     els.spotlightLabel.textContent = "Tournament Countdown";
     els.spotlightMatch.innerHTML = emptyBlock("World Cup 2026 data pending", "Live fixtures and results will appear here as soon as the API returns matches.");
     els.spotlightDetails.innerHTML = detailPills([
@@ -120,7 +142,8 @@ function renderSpotlight() {
     return;
   }
 
-  els.spotlightLabel.textContent = live ? "Live Now" : isComplete(spotlight) ? "Latest Result" : "Next Match";
+  setSpotlightLayout("single");
+  els.spotlightLabel.textContent = isComplete(spotlight) ? "Latest Result" : "Next Match";
   els.spotlightMatch.innerHTML = matchupMarkup(spotlight, { large: true });
   els.spotlightDetails.innerHTML = detailPills(matchDetails(spotlight));
 }
@@ -227,6 +250,10 @@ function renderTicker() {
   els.tickerTrack.innerHTML = [...content, ...content].map((item) => `<span>${escapeHtml(item)}</span>`).join("");
 }
 
+function setSpotlightLayout(layout) {
+  els.spotlightMatch.className = layout === "pair" ? "next-games" : "matchup";
+}
+
 function matchupMarkup(match, options = {}) {
   const large = Boolean(options.large);
   const compact = Boolean(options.compact);
@@ -300,6 +327,33 @@ function scheduleRowMarkup(match, index) {
         <small>${[stageLabel(match), formatLabel(match.group), match.venue].filter(Boolean).join(" • ")}</small>
       </div>
       <div class="row-number">${String(index + 1).padStart(2, "0")}</div>
+    </section>
+  `;
+}
+
+function nextGameMarkup(match, index) {
+  return `
+    <section class="next-game">
+      <div class="next-game-meta">
+        <span>Next ${String(index + 1).padStart(2, "0")}</span>
+        <span>${[stageLabel(match), formatLabel(match.group)].filter(Boolean).join(" • ")}</span>
+      </div>
+      <div class="next-game-fixture">
+        <div class="next-game-team">
+          ${crestMarkup(match.homeTeam)}
+          <span>${escapeHtml(teamName(match.homeTeam))}</span>
+        </div>
+        <div class="next-game-kickoff">
+          <span>vs</span>
+          <strong>${formatTime(match.utcDate)}</strong>
+          <small>${formatDay(match.utcDate)}</small>
+        </div>
+        <div class="next-game-team">
+          ${crestMarkup(match.awayTeam)}
+          <span>${escapeHtml(teamName(match.awayTeam))}</span>
+        </div>
+      </div>
+      <small class="next-game-venue">${escapeHtml(match.venue || "Venue TBD")}</small>
     </section>
   `;
 }
@@ -586,6 +640,16 @@ function tickClock() {
 
 function sortedMatches() {
   return [...state.matches].sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate));
+}
+
+function getUpcomingMatches(limit = Infinity) {
+  const now = Date.now();
+  return sortedMatches()
+    .filter((match) => {
+      const kickoff = new Date(match.utcDate).getTime();
+      return !isComplete(match) && Number.isFinite(kickoff) && kickoff >= now;
+    })
+    .slice(0, limit);
 }
 
 function getLiveMatch() {
