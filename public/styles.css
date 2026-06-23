@@ -197,7 +197,13 @@ h2 {
 }
 
 .slide[data-slide="knockout"] {
-  grid-template-rows: 78px minmax(0, 1fr);
+  grid-template-rows: 24px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.slide[data-slide="knockout"] .section-heading {
+  min-height: 24px;
+  align-items: flex-start;
 }
 
 .slide[data-slide="groups"] .section-heading {

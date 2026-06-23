@@ -94,7 +94,7 @@ Width: 1920
 Height: 1080
 ```
 
-The dashboard refreshes API data every 30 seconds and rotates slides every 12 seconds. The live slide stays on screen for 18 seconds when a FIFA live match is active, and the group slide stays on screen for 22 seconds.
+The dashboard refreshes API data every 30 seconds and rotates slides every 12 seconds. The live slide stays on screen for 18 seconds when a FIFA live match is active, the elimination slide stays on screen for 17 seconds, and the group slide stays on screen for 22 seconds.
 
 ## Validation
 

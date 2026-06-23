@@ -3,6 +3,7 @@ const REFRESH_MS = 30_000;
 const SLIDE_MS = 12_000;
 const LIVE_SLIDE_MS = 18_000;
 const GROUP_SLIDE_MS = 22_000;
+const KNOCKOUT_SLIDE_MS = 17_000;
 const GROUP_MS = 6_000;
 const HOST_CITIES = 16;
 const TOTAL_MATCHES = 104;
@@ -625,6 +626,9 @@ function currentSlideDuration() {
   }
   if (active?.dataset.slide === "groups") {
     return GROUP_SLIDE_MS;
+  }
+  if (active?.dataset.slide === "knockout") {
+    return KNOCKOUT_SLIDE_MS;
   }
   return SLIDE_MS;
 }
