@@ -1,14 +1,16 @@
 # WorldCup Tracker
 
-WorldCup Tracker is an OBS-ready dashboard for FIFA World Cup 2026 fixtures, results, group tables, teams, and rolling broadcast details.
+WorldCup Tracker is an OBS-ready dashboard for FIFA World Cup 2026 fixtures, results, group tables, knockout bracket, teams, and rolling broadcast details.
 
-The dashboard is designed to run without interaction during a stream. It rotates through match spotlight, latest results, upcoming fixtures, standings, and qualified teams while a ticker scrolls along the bottom.
+The dashboard is designed to run without interaction during a stream. It rotates through match spotlight, latest results, upcoming fixtures, standings, the elimination bracket, and qualified teams while a ticker scrolls along the bottom.
 
 ## Features
 
 - Live data proxy for football-data.org v4
 - Optional FIFA public match-centre live feed for match clock, live score, scorers, bookings, formations, and officials
 - Auto-refreshing World Cup 2026 schedule, teams, and standings
+- Elimination-phase bracket with participants, scores, and completed-match winners
+- Crossed-out qualified-team tiles for teams eliminated from group or knockout play
 - OBS-friendly 1920x1080 broadcast layout
 - Auto-rotating slides with no clicks required
 - Continuous lower-third ticker
@@ -92,7 +94,7 @@ Width: 1920
 Height: 1080
 ```
 
-The dashboard refreshes API data every 30 seconds and rotates slides every 12 seconds. The live slide stays on screen for 18 seconds when a FIFA live match is active.
+The dashboard refreshes API data every 30 seconds and rotates slides every 12 seconds. The live slide stays on screen for 18 seconds when a FIFA live match is active, and the group slide stays on screen for 22 seconds.
 
 ## Validation
 

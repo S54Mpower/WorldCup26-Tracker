@@ -2,12 +2,22 @@ const API_URL = "/api/worldcup";
 const REFRESH_MS = 30_000;
 const SLIDE_MS = 12_000;
 const LIVE_SLIDE_MS = 18_000;
-const GROUP_SLIDE_MS = 17_000;
+const GROUP_SLIDE_MS = 22_000;
 const GROUP_MS = 6_000;
 const HOST_CITIES = 16;
 const TOTAL_MATCHES = 104;
 const LIVE_WINDOW_MS = 150 * 60 * 1000;
 const LIVE_STATUSES = new Set(["IN_PLAY", "PAUSED", "LIVE"]);
+const KNOCKOUT_STAGE_ORDER = [
+  "LAST_32",
+  "ROUND_OF_32",
+  "LAST_16",
+  "ROUND_OF_16",
+  "QUARTER_FINALS",
+  "SEMI_FINALS",
+  "THIRD_PLACE",
+  "FINAL"
+];
 const slideEls = [...document.querySelectorAll(".slide")];
 
 let state = {
@@ -31,6 +41,7 @@ const els = {
   liveScoreline: document.querySelector("#live-scoreline"),
   liveScorers: document.querySelector("#live-scorers"),
   localTime: document.querySelector("#local-time"),
+  knockoutBoard: document.querySelector("#knockout-board"),
   overviewMetrics: document.querySelector("#overview-metrics"),
   resultGrid: document.querySelector("#result-grid"),
   scheduleBoard: document.querySelector("#schedule-board"),
@@ -83,6 +94,7 @@ function render() {
   renderResults();
   renderSchedule();
   renderStandings();
+  renderKnockout();
   renderTeams();
   renderTicker();
   syncActiveSlide();
@@ -229,10 +241,19 @@ function renderStandings() {
 
 function renderTeams() {
   const teams = state.teams.slice(0, 48);
+  const eliminatedTeams = eliminatedTeamKeys();
   els.teamWall.classList.toggle("is-empty", !teams.length);
   els.teamWall.innerHTML = teams.length
-    ? teams.map(teamMarkup).join("")
+    ? teams.map((team) => teamMarkup(team, eliminatedTeams.has(teamKey(team)))).join("")
     : emptyBlock("Teams loading", "Qualified nations will appear here when available from the API.");
+}
+
+function renderKnockout() {
+  const rounds = knockoutRounds();
+  els.knockoutBoard.classList.toggle("is-empty", !rounds.length);
+  els.knockoutBoard.innerHTML = rounds.length
+    ? `<div class="knockout-rounds">${rounds.map(knockoutRoundMarkup).join("")}</div>`
+    : emptyBlock("Elimination bracket pending", "Knockout fixtures, participants, and scores will appear here when the API publishes them.");
 }
 
 function renderTicker() {
@@ -393,12 +414,52 @@ function groupTableMarkup(standing) {
   `;
 }
 
-function teamMarkup(team) {
+function teamMarkup(team, eliminated = false) {
   return `
-    <section class="team-tile">
+    <section class="team-tile ${eliminated ? "is-eliminated" : ""}" aria-label="${escapeAttr(`${teamName(team)}${eliminated ? " eliminated" : ""}`)}">
       ${crestMarkup(team)}
       <span>${escapeHtml(teamCode(team))}</span>
+      ${eliminated ? "<small>OUT</small>" : ""}
     </section>
+  `;
+}
+
+function knockoutRoundMarkup(round) {
+  return `
+    <section class="knockout-round ${round.matches.length >= 8 ? "is-dense" : ""}">
+      <div class="knockout-round-title">
+        <span>${escapeHtml(round.label)}</span>
+        <small>${round.matches.length} ${round.matches.length === 1 ? "match" : "matches"}</small>
+      </div>
+      <div class="knockout-matches">
+        ${round.matches.map(knockoutMatchMarkup).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function knockoutMatchMarkup(match) {
+  const winner = winnerSide(match);
+  return `
+    <section class="knockout-match ${isComplete(match) ? "is-complete" : ""}">
+      <div class="knockout-match-meta">
+        <span>${formatDay(match.utcDate)}</span>
+        <span>${statusLabel(match)}</span>
+      </div>
+      ${knockoutTeamRowMarkup(match, "home", winner === "home")}
+      ${knockoutTeamRowMarkup(match, "away", winner === "away")}
+    </section>
+  `;
+}
+
+function knockoutTeamRowMarkup(match, side, winner = false) {
+  const team = side === "home" ? match.homeTeam : match.awayTeam;
+  return `
+    <div class="knockout-team-row ${winner ? "is-winner" : ""}">
+      ${crestMarkup(team)}
+      <span>${escapeHtml(shortName(team))}</span>
+      <strong>${escapeHtml(knockoutScoreDisplay(match, side))}</strong>
+    </div>
   `;
 }
 
@@ -769,6 +830,20 @@ function teamCode(team = {}) {
   return (team.tla || team.code || team.shortName || team.name || "TBD").slice(0, 3).toUpperCase();
 }
 
+function teamKey(team = {}) {
+  if (team.id !== undefined && team.id !== null) {
+    return `id:${team.id}`;
+  }
+
+  const code = normalizedTeamCode(team);
+  if (code) {
+    return `code:${code}`;
+  }
+
+  const name = normalizeText(teamDisplayName(team));
+  return name ? `name:${name}` : "";
+}
+
 function formatDate(value) {
   if (!value) {
     return "TBD";
@@ -926,4 +1001,177 @@ function headToHeadRecord(teamId, matches) {
 
 function numberValue(value) {
   return Number.isFinite(Number(value)) ? Number(value) : 0;
+}
+
+function eliminatedTeamKeys() {
+  const eliminated = new Set();
+  const tables = groupTables().filter((standing) => standing.group && standing.stage === "GROUP_STAGE");
+  const completedGroups = tables.filter(isGroupComplete);
+  const allGroupsComplete = tables.length > 0 && completedGroups.length === tables.length;
+  const thirdPlaceRows = [];
+
+  tables.forEach((standing) => {
+    const groupComplete = completedGroups.includes(standing);
+    standing.table.forEach((row, index) => {
+      const key = teamKey(row.team);
+      if (!key) {
+        return;
+      }
+
+      const teamFinishedGroup = numberValue(row.playedGames) >= standing.table.length - 1;
+      if (index > 2 && (groupComplete || teamFinishedGroup)) {
+        eliminated.add(key);
+      } else if (index === 2 && groupComplete) {
+        thirdPlaceRows.push({ group: standing.group, row });
+      }
+    });
+  });
+
+  if (allGroupsComplete && thirdPlaceRows.length > 8) {
+    thirdPlaceRows
+      .sort((a, b) => compareStandingRows(a.row, b.row, a.group))
+      .slice(8)
+      .forEach(({ row }) => {
+        const key = teamKey(row.team);
+        if (key) {
+          eliminated.add(key);
+        }
+      });
+  }
+
+  knockoutMatches()
+    .filter(isComplete)
+    .forEach((match) => {
+      const loser = loserTeam(match);
+      const key = teamKey(loser);
+      if (key) {
+        eliminated.add(key);
+      }
+    });
+
+  return eliminated;
+}
+
+function isGroupComplete(standing) {
+  const rows = Array.isArray(standing.table) ? standing.table : [];
+  if (rows.length < 2) {
+    return false;
+  }
+
+  const playedRowsComplete = rows.every((row) => numberValue(row.playedGames) >= rows.length - 1);
+  if (playedRowsComplete) {
+    return true;
+  }
+
+  const expectedMatches = rows.length * (rows.length - 1) / 2;
+  const groupMatches = state.matches.filter((match) => match.stage === "GROUP_STAGE" && match.group === standing.group);
+  return groupMatches.length >= expectedMatches
+    && groupMatches.filter(isComplete).length >= expectedMatches;
+}
+
+function knockoutRounds() {
+  const rounds = knockoutMatches().reduce((byStage, match) => {
+    const stage = normalizedStage(match.stage);
+    if (!byStage.has(stage)) {
+      byStage.set(stage, []);
+    }
+    byStage.get(stage).push(match);
+    return byStage;
+  }, new Map());
+
+  return [...rounds.entries()]
+    .sort(([stageA], [stageB]) => stageSortValue(stageA) - stageSortValue(stageB))
+    .map(([stage, matches]) => ({
+      stage,
+      label: formatLabel(stage),
+      matches: matches.sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate))
+    }));
+}
+
+function knockoutMatches() {
+  return sortedMatches().filter(isKnockoutMatch);
+}
+
+function isKnockoutMatch(match) {
+  const stage = normalizedStage(match.stage);
+  if (!stage || stage === "GROUP_STAGE") {
+    return false;
+  }
+
+  return KNOCKOUT_STAGE_ORDER.includes(stage)
+    || stage.includes("FINAL")
+    || stage.includes("ROUND")
+    || stage.includes("LAST")
+    || stage.includes("PLAY_OFF");
+}
+
+function normalizedStage(stage) {
+  return String(stage || "").trim().toUpperCase().replace(/[\s-]+/g, "_");
+}
+
+function stageSortValue(stage) {
+  const index = KNOCKOUT_STAGE_ORDER.indexOf(normalizedStage(stage));
+  return index >= 0 ? index : KNOCKOUT_STAGE_ORDER.length;
+}
+
+function winnerSide(match) {
+  const winner = String(match.score?.winner || match.winner || "").toUpperCase();
+  if (winner.includes("HOME")) {
+    return "home";
+  }
+  if (winner.includes("AWAY")) {
+    return "away";
+  }
+  if (!isComplete(match)) {
+    return "";
+  }
+
+  const homeScore = scoreValue(match, "home");
+  const awayScore = scoreValue(match, "away");
+  if (homeScore > awayScore) {
+    return "home";
+  }
+  if (awayScore > homeScore) {
+    return "away";
+  }
+
+  const homePenalties = penaltyScoreValue(match, "home");
+  const awayPenalties = penaltyScoreValue(match, "away");
+  if (homePenalties > awayPenalties) {
+    return "home";
+  }
+  if (awayPenalties > homePenalties) {
+    return "away";
+  }
+
+  return "";
+}
+
+function loserTeam(match) {
+  const winner = winnerSide(match);
+  if (winner === "home") {
+    return match.awayTeam;
+  }
+  if (winner === "away") {
+    return match.homeTeam;
+  }
+  return null;
+}
+
+function knockoutScoreDisplay(match, side) {
+  const score = scoreDisplay(match, side);
+  const penalties = penaltyScoreValue(match, side);
+  return Number.isFinite(penalties) ? `${score} (${penalties})` : score;
+}
+
+function penaltyScoreValue(match, side) {
+  const v2Key = side === "home" ? "homeTeam" : "awayTeam";
+  const candidates = [
+    match.score?.penalties?.[side],
+    match.score?.penalties?.[v2Key],
+    match.score?.penaltyShootout?.[side],
+    match.score?.penaltyShootout?.[v2Key]
+  ];
+  const value = candidates.find((candidate) => Number.isFinite(Number(candidate)));
+  return Number.isFinite(Number(value)) ? Number(value) : NaN;
 }
