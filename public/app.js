@@ -59,6 +59,7 @@ init();
 function init() {
   tickClock();
   loadData();
+  document.addEventListener("click", handleSlideClick);
   setInterval(tickClock, 1_000);
   setInterval(loadData, REFRESH_MS);
   scheduleNextSlide();
@@ -646,6 +647,15 @@ function advanceSlide() {
     slideCycle += 1;
   }
   setActiveSlide(next);
+}
+
+function handleSlideClick(event) {
+  if (event.target?.closest?.("a, button, input, select, textarea, summary")) {
+    return;
+  }
+
+  advanceSlide();
+  scheduleNextSlide();
 }
 
 function syncActiveSlide() {
