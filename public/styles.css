@@ -974,7 +974,8 @@ h2 {
 .knockout-team-row span {
   min-width: 0;
   overflow: hidden;
-  font-size: 14px;
+  font-size: 18px;
+  line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1011,7 +1012,7 @@ h2 {
 }
 
 .knockout-round.is-dense .knockout-team-row span {
-  font-size: 12px;
+  font-size: 15px;
 }
 
 .knockout-round.is-dense .knockout-team-row strong {
